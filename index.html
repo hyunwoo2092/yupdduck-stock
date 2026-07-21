@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>엽떡 재고 관리 시스템</title>
+    <!-- Tailwind CSS 및 Alpine.js (무료 초고속 CDN 로드) -->
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
+        body { font-family: 'Noto Sans KR', sans-serif; -webkit-tap-highlight-color: transparent; }
+        
+        /* 부드럽게 반짝이는 깜빡임 효과 */
+        @keyframes blink-effect {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+        .blinking-notice {
+            animation: blink-effect 1.5s infinite ease-in-out;
+        }
+
+        .notice-box {
+            background-color: #fff8e1; 
+            color: #b78103; 
+            border: 1px solid #ffeeba;
+            border-radius: 12px; 
+            padding: 12px 14px;
+            margin-top: 16px; 
+            text-align: center;
+            font-size: 14px; 
+            font-weight: 700; 
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen text-gray-800" x-data="stockApp()">
+
+    <!-- 스마트폰 컨테이너 뷰 고정 -->
+    <div class="max-w-md mx-auto bg-white min-h-screen shadow-2xl flex flex-col relative overflow-hidden">
+        
+        <!-- [1번 화면] 메인 화면 (구역 선택) -->
+        <div x-show="screen === 'main'" class="flex-1 flex flex-col justify-start p-6">
+            <div class="text-center mt-6">
+                <div class="inline-block bg-orange-100 p-3 rounded-full text-orange-500 mb-2 animate-pulse">
+                    📦
+                </div>
+                <h1 class="text-2xl font-bold text-gray-900 tracking-tight">엽떡 재고 관리</h1>
+                <p class="text-gray-500 text-sm mt-1">구역을 선택하기 전 입력 날짜를 확인하세요.</p>
+                
+                <!-- 날짜 선택 박스 -->
+                <div class="mt-4 bg-gray-50 p-4 rounded-2xl border border-gray-200 text-left">
+                    <label class="block text-xs font-bold text-gray-400 uppercase mb-1">재고 입력 날짜</label>
+                    <input type="date" x-model="date" @change="updateDateLabel()" class="w-full text-lg font-bold text-gray-800 border-none p-0 bg-transparent focus:ring-0 cursor-pointer">
+                </div>
+
+                <!-- 안내 문구 박스 (반짝임 + 밑줄 적용) -->
+                <div class="notice-box blinking-notice">
+                    ⚠️ <span class="underline underline-offset-4">애매한 수량은 소수점 표시해주세요 (예시: 1.8)</span>
+                </div>
+            </div>
+
+            <!-- 구역 진입 버튼 -->
+            <div class="grid grid-cols-1 gap-4 mt-6">
+                <button @click="screen = 'kitchen'" class="bg-orange-500 hover:bg-orange-600 active:scale-95 text-white p-6 rounded-2xl shadow-md text-left transition-all">
+                    <span class="text-xs bg-white/20 px-2 py-0.5 rounded">ZONE 01</span>
+                    <h3 class="text-xl font-bold mt-2">🧑‍🍳 주방 자재 입력</h3>
+                    <p class="text-orange-100 text-xs mt-1">꿔바로우, 떡, 햄, 야채류 등 31개 항목</p>
+                </button>
+
+                <button @click="screen = 'hall'" class="bg-red-600 hover:bg-red-700 active:scale-95 text-white p-6 rounded-2xl shadow-md text-left transition-all">
+                    <span class="text-xs bg-white/20 px-2 py-0.5 rounded">ZONE 02</span>
+                    <h3 class="text-xl font-bold mt-2">🥡 홀 / 포장 자재 입력</h3>
+                    <p class="text-red-100 text-xs mt-1">치즈, 당면, 단무지, 용기류 등 71개 항목</p>
+                </button>
+            </div>
+
+            <div class="text-center text-xs text-gray-400 mt-auto pt-6 pb-2">
+                v0.app Custom Mobile App
+            </div>
+        </div>
+
+        <!-- [2번 화면] 자재 입력 화면 (주방 / 홀 공용 컴포넌트) -->
+        <div x-show="screen === 'kitchen' || screen === 'hall'" class="flex-1 flex flex-col h-screen" style="display: none;">
+            <!-- 상단 고정 헤더 -->
+            <div class="sticky top-0 bg-white border-b border-gray-100 z-10 px-4 py-4 flex items-center justify-between shadow-sm">
+                <button @click="screen = 'main'" class="p-2 text-gray-500 hover:text-gray-800 text-xl font-bold">
+                    ←
+                </button>
+                <div class="text-center">
+                    <h2 class="font-bold text-lg text-gray-900" x-text="screen === 'kitchen' ? '주방 자재 입력' : '홀 / 포장 자재 입력'"></h2>
+                    <p class="text-xs text-orange-500 font-medium" x-text="dateLabel"></p>
+                </div>
+                <div class="w-8"></div>
+            </div>
+
+            <!-- 자재 입력 리스트 (스크롤 구역) -->
+            <div class="flex-1 overflow-y-auto p-4 space-y-3 pb-32">
+                <template x-for="(item, index) in getActiveMaterials()" :key="index">
+                    <div class="flex items-center justify-between bg-gray-50 p-4 rounded-xl border border-gray-100">
+                        <div class="flex-1 pr-2">
+                            <span class="font-bold text-gray-800 text-base block" x-text="item.name"></span>
+                        </div>
+                        
+                        <!-- 수량 증감 버튼 영역 -->
+                        <div class="flex items-center space-x-2">
+                            <button @click="if(item.value > 0) item.value--" class="w-10 h-10 bg-white border border-gray-200 active:bg-gray-100 rounded-lg flex items-center justify-center font-bold text-xl text-gray-600 shadow-sm select-none">-</button>
+                            <input type="number" x-model.number="item.value" class="w-16 h-10 text-center bg-white border border-gray-200 rounded-lg font-bold text-lg text-gray-800 focus:border-orange-500 focus:outline-none" min="0">
+                            <button @click="item.value++" class="w-10 h-10 bg-white border border-gray-200 active:bg-gray-100 rounded-lg flex items-center justify-center font-bold text-xl text-gray-600 shadow-sm select-none">+</button>
+                        </div>
+                    </div>
+                </template>
+            </div>
+
+            <!-- 하단 고정 전송 버튼 -->
+            <div class="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-100 p-4 shadow-lg">
+                <button @click="submitToGoogleSheet()" :disabled="submitting" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-4 rounded-xl shadow-md transition-all flex items-center justify-center disabled:opacity-50">
+                    <span x-show="!submitting" x-text="(screen === 'kitchen' ? '주방' : '홀') + ' 데이터 구글시트 전송'"></span>
+                    <span x-show="submitting">데이터 전송 중...</span>
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- 전송 완료 안내 모달 팝업 -->
+    <div x-show="showSuccess" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" style="display: none;">
+        <div class="bg-white rounded-2xl p-6 max-w-sm w-full text-center shadow-xl">
+            <div class="w-12 h-12 bg-green-100 text-green-500 rounded-full flex items-center justify-center mx-auto mb-3 text-xl font-bold">✓</div>
+            <h3 class="text-lg font-bold text-gray-900">전송이 완료되었습니다!</h3>
+            <p class="text-xs text-gray-500 mt-1">구글 스프레드시트에 값이 정상 저장되었습니다.</p>
+            <button @click="showSuccess = false; screen = 'main';" class="w-full mt-4 bg-gray-900 text-white font-bold py-2.5 rounded-xl text-sm">확인</button>
+        </div>
+    </div>
+
+    <script>
+        function stockApp() {
+            const kitchenList = ["꿔바로우","감자채","김말이","야채","만두","엽봉","바삭","야채죽(냉장고포함)","우동사리","베이컨(3,0)","무뼈닭발","통뼈닭발","떡","길쭉이","넓적이","햄","양배추(망)","양배추(손질봉지)","대파","엽봉소스","꿔바소스","다진마늘","우삼겹트레이","유부","국물닭발가루양념","감자","당근","양파","불고기간장(1,0)","계란찜스프(1,0)","핫불소스(봉지)","핫불소스(낱개)","음식물쓰레기봉투"];
+            const hallList = ["치즈","엽당35","엽당30","배달단무지","당면(2,0)","중국당면","분모자","순대","메추리알","김가루","알밥단무지","참치마요","콘마요","핫불소스(1,0)","엽도그","오뎅튀김(봉)","밀키트(오)","밀키트(착)","밀키트로제(오)","밀키트로제(착)","밀키트보냉백(1.0)","매운맛스프","오리지널","덜매운맛","초보맛","착한맛","로제분말","마라소스","마라로제(오)","마라로제(착)","저당 오리지날","저당 착한맛","2인매운","2인오리","2인덜매","2인착한","감자채 시즈닝","포장봉투(2,0)","튀김만두봉투(1,0)","토핑용기","떡그릇(윗칸),(1,0)","떡그릇(아래칸) 갯수","2인그릇","숟가락 1박스(0~2)","젓가락 1박스(0~2)","계란찜용기(1,0)","닭발그릇(1,0)","주먹김밥용기(줄)","순대용기","2구소스용기","장갑S","장갑M","장갑L","깨","고무줄","참기름","계란","홀단무지","위생장갑","쌀","빌지테이프(묶음단위)","콜라","사이다","빌지(1,0)","랩(1,0)","테이블냅킨(1,0)","핸드타올(1,0)","쓰레기봉투"];
+
+            return {
+                screen: 'main',
+                date: new Date().toISOString().slice(0, 10),
+                dateLabel: '',
+                submitting: false,
+                showSuccess: false,
+                materials: [
+                    ...kitchenList.map(name => ({ name, zone: 'kitchen', value: 0 })),
+                    ...hallList.map(name => ({ name, zone: 'hall', value: 0 }))
+                ],
+                init() {
+                    this.updateDateLabel();
+                },
+                updateDateLabel() {
+                    if (!this.date) return;
+                    const [y, m, d] = this.date.split("-");
+                    this.dateLabel = `${y}년 ${parseInt(m)}월 ${parseInt(d)}일`;
+                },
+                getActiveMaterials() {
+                    return this.materials.filter(m => m.zone === this.screen);
+                },
+                submitToGoogleSheet() {
+                    this.submitting = true;
+                    const activeItems = this.getActiveMaterials();
+                    const payload = {
+                        date: this.date,
+                        zone: this.screen,
+                        data: activeItems.map(i => ({ name: i.name, value: i.value }))
+                    };
+
+                    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycby2Ffz6X_59txLUdq8mATPE3Ea9UNrxk6lrXc0Nqld5mm7OjtVFWPt3A65lXxYlegi_vw/exec";
+
+                    fetch(GOOGLE_SCRIPT_URL, {
+                        method: "POST",
+                        mode: "no-cors",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(payload)
+                    })
+                    .then(() => {
+                        this.submitting = false;
+                        this.showSuccess = true;
+                        activeItems.forEach(i => i.value = 0);
+                    })
+                    .catch(err => {
+                        alert("구글 시트 전송에 실패했습니다: " + err);
+                        this.submitting = false;
+                    });
+                }
+            }
+        }
+    </script>
+</body>
+</html>
