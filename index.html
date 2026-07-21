@@ -38,7 +38,7 @@
     <!-- 스마트폰 컨테이너 뷰 고정 -->
     <div class="max-w-md mx-auto bg-white min-h-screen shadow-2xl flex flex-col relative overflow-hidden">
         
-        <!-- [1번 화면] 메인 화면 (날짜 먼저, 그 다음 사진등록 및 구역 선택) -->
+        <!-- [1번 화면] 메인 화면 -->
         <div x-show="screen === 'main'" class="flex-1 flex flex-col justify-start p-6">
             <div class="text-center mt-6">
                 <div class="inline-block bg-orange-100 p-3 rounded-full text-orange-500 mb-2 animate-pulse">
@@ -91,9 +91,8 @@
             </div>
         </div>
 
-        <!-- [2번 화면] 자재 입력 및 수정 화면 (주방 / 홀 공용) -->
+        <!-- [2번 화면] 자재 입력 및 수정 화면 -->
         <div x-show="screen === 'kitchen' || screen === 'hall'" class="flex-1 flex flex-col h-screen" style="display: none;">
-            <!-- 상단 고정 헤더 -->
             <div class="sticky top-0 bg-white border-b border-gray-100 z-10 px-4 py-4 flex items-center justify-between shadow-sm">
                 <button @click="screen = 'main'" class="p-2 text-gray-500 hover:text-gray-800 text-xl font-bold">
                     ←
@@ -105,15 +104,12 @@
                 <div class="w-8"></div>
             </div>
 
-            <!-- 자재 입력 리스트 -->
             <div class="flex-1 overflow-y-auto p-4 space-y-3 pb-32">
                 <template x-for="(item, index) in getActiveMaterials()" :key="index">
                     <div class="flex items-center justify-between bg-gray-50 p-4 rounded-xl border border-gray-100">
                         <div class="flex-1 pr-2">
                             <span class="font-bold text-gray-800 text-base block" x-text="item.name"></span>
                         </div>
-                        
-                        <!-- 수량 증감 버튼 영역 -->
                         <div class="flex items-center space-x-2">
                             <button @click="if(item.value > 0) item.value--" class="w-10 h-10 bg-white border border-gray-200 active:bg-gray-100 rounded-lg flex items-center justify-center font-bold text-xl text-gray-600 shadow-sm select-none">-</button>
                             <input type="number" x-model.number="item.value" class="w-16 h-10 text-center bg-white border border-gray-200 rounded-lg font-bold text-lg text-gray-800 focus:border-orange-500 focus:outline-none" min="0" step="any">
@@ -123,7 +119,6 @@
                 </template>
             </div>
 
-            <!-- 하단 고정 전송/수정 버튼 -->
             <div class="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-100 p-4 shadow-lg">
                 <button @click="submitToGoogleSheet()" :disabled="submitting" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-4 rounded-xl shadow-md transition-all flex items-center justify-center disabled:opacity-50">
                     <span x-show="!submitting" x-text="isEditMode ? '수정 내용 구글시트에 덮어쓰기' : ((screen === 'kitchen' ? '주방' : '홀') + ' 데이터 구글시트 전송')"></span>
@@ -134,7 +129,7 @@
 
     </div>
 
-    <!-- 전송/수정 완료 안내 모달 팝업 -->
+    <!-- 완료 안내 모달 -->
     <div x-show="showSuccess" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" style="display: none;">
         <div class="bg-white rounded-2xl p-6 max-w-sm w-full text-center shadow-xl">
             <div class="w-12 h-12 bg-green-100 text-green-500 rounded-full flex items-center justify-center mx-auto mb-3 text-xl font-bold">✓</div>
@@ -239,12 +234,28 @@
                     }
                     this.uploading = true;
                     
-                    setTimeout(() => {
+                    const payload = {
+                        type: 'receipt',
+                        date: this.date,
+                        fileName: this.receiptFile.name
+                    };
+
+                    fetch(GOOGLE_SCRIPT_URL, {
+                        method: "POST",
+                        mode: "no-cors",
+                        headers: { "Content-Type": "text/plain;charset=utf-8" },
+                        body: JSON.stringify(payload)
+                    })
+                    .then(() => {
                         this.uploading = false;
                         this.showReceiptModal = false;
                         this.successMessage = '발주 물량이 성공적으로 반영되었습니다!';
                         this.showSuccess = true;
-                    }, 1500);
+                    })
+                    .catch(err => {
+                        alert("전송에 실패했습니다: " + err);
+                        this.uploading = false;
+                    });
                 },
                 fetchExistingDataForZone(targetZone) {
                     this.showEditSelectModal = false;
