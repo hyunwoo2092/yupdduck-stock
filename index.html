@@ -252,12 +252,16 @@
                         .then(res => res.json())
                         .then(resData => {
                             this.uploading = false;
+                            if (resData.status === "error") {
+                                alert("서버 처리 실패: " + resData.message);
+                                return;
+                            }
                             this.showReceiptModal = false;
                             this.successMessage = '거래명세표 AI 판독 및 시트 기록이 완료되었습니다!';
                             this.showSuccess = true;
                         })
                         .catch(err => {
-                            alert("전송에 실패했습니다: " + err);
+                            alert("통신 실패: " + err);
                             this.uploading = false;
                         });
                     };
@@ -307,6 +311,11 @@
                     })
                     .then(res => res.json())
                     .then(resData => {
+                        if (resData.status === "error") {
+                            alert("서버 전송 실패: " + resData.message);
+                            this.submitting = false;
+                            return;
+                        }
                         this.successMessage = this.isEditMode ? '수정이 완료되었습니다!' : '전송이 완료되었습니다!';
                         this.showSuccess = true;
                         this.submitting = false;
