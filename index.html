@@ -186,7 +186,7 @@
             const kitchenList = ["꿔바로우","감자채","김말이","야채","만두","엽봉","바삭","야채죽(냉장고포함)","우동사리","베이컨(3,0)","무뼈닭발","통뼈닭발","떡","길쭉이","넓적이","햄","양배추(망)","양배추(손질봉지)","대파","엽봉소스","꿔바소스","다진마늘","우삼겹트레이","유부","국물닭발가루양념","감자","당근","양파","불고기간장(1,0)","계란찜스프(1,0)","핫불소스(봉지)","핫불소스(낱개)","음식물쓰레기봉투"];
             const hallList = ["치즈","엽당35","엽당30","배달단무지","당면(2,0)","중국당면","분모자","순대","메추리알","김가루","알밥단무지","참치마요","콘마요","핫불소스(1,0)","엽도그","오뎅튀김(봉)","밀키트(오)","밀키트(착)","밀키트로제(오)","밀키트로제(착)","밀키트보냉백(1.0)","매운맛스프","오리지널","덜매운맛","초보맛","착한맛","로제분말","마라소스","마라로제(오)","마라로제(착)","저당 오리지날","저당 착한맛","2인매운","2인오리","2인덜매","2인착한","감자채 시즈닝","포장봉투(2,0)","튀김만두봉투(1,0)","토핑용기","떡그릇(윗칸),(1,0)","떡그릇(아래칸) 갯수","2인그릇","숟가락 1박스(0~2)","젓가락 1박스(0~2)","계란찜용기(1,0)","닭발그릇(1,0)","주먹김밥용기(줄)","순대용기","2구소스용기","장갑S","장갑M","장갑L","깨(최대10봉)","고무줄","참기름","계란","홀단무지","위생장갑","쌀","빌지테이프(묶음단위)","콜라","사이다","빌지(1,0)","랩(1,0)","테이블냅킨(1,0)","핸드타올(1,0)","쓰레기봉투"];
 
-            const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwUf2AH4r64UujnznVur41VRj-vkNb4BeY9w1A8H3Nh3PfrzJF3F7cWM38fC72gb-cWIA/exec";
+            const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzFjQ8YilzN1fegoRRt7BJS6fN-PHsVa94JbZJqV0tY7BBmlQtPneSCsLqVpc8istcxHA/exec";
 
             return {
                 screen: 'main',
@@ -246,11 +246,11 @@
 
                         fetch(GOOGLE_SCRIPT_URL, {
                             method: "POST",
-                            mode: "no-cors",
                             headers: { "Content-Type": "text/plain;charset=utf-8" },
                             body: JSON.stringify(payload)
                         })
-                        .then(() => {
+                        .then(res => res.json())
+                        .then(resData => {
                             this.uploading = false;
                             this.showReceiptModal = false;
                             this.successMessage = '거래명세표 AI 판독 및 시트 기록이 완료되었습니다!';
@@ -302,11 +302,11 @@
 
                     fetch(GOOGLE_SCRIPT_URL, {
                         method: "POST",
-                        mode: "no-cors",
                         headers: { "Content-Type": "text/plain;charset=utf-8" },
                         body: JSON.stringify(payload)
                     })
-                    .then(() => {
+                    .then(res => res.json())
+                    .then(resData => {
                         this.successMessage = this.isEditMode ? '수정이 완료되었습니다!' : '전송이 완료되었습니다!';
                         this.showSuccess = true;
                         this.submitting = false;
