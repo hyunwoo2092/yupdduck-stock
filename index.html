@@ -59,7 +59,7 @@
                 </div>
             </div>
 
-            <!-- 구역 진입 버튼 (중복 체크 함수 연결) -->
+            <!-- 구역 진입 버튼 -->
             <div class="grid grid-cols-1 gap-3 mt-6">
                 <button @click="checkAndGoScreen('kitchen')" class="bg-orange-500 hover:bg-orange-600 active:scale-95 text-white p-4 rounded-2xl shadow-md text-left transition-all">
                     <span class="text-xs bg-white/20 px-2 py-0.5 rounded">ZONE 01</span>
@@ -125,7 +125,7 @@
     <div x-show="loadingData" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" style="display: none;">
         <div class="bg-white rounded-2xl p-6 max-w-sm w-full text-center shadow-xl">
             <div class="inline-block bg-orange-100 p-3 rounded-full text-orange-500 mb-3 animate-spin text-xl">⏳</div>
-            <h3 class="text-lg font-bold text-gray-900">데이터를 확인하는 중입니다...</h3>
+            <h3 class="text-lg font-bold text-gray-900">데이터를 불러오는 중입니다...</h3>
             <p class="text-xs text-gray-500 mt-1">잠시만 기다려 주세요.</p>
         </div>
     </div>
@@ -146,6 +146,16 @@
             <h3 class="text-lg font-bold text-gray-900" x-text="successMessage"></h3>
             <p class="text-xs text-gray-500 mt-1">구글 스프레드시트에 값이 정상 반영되었습니다.</p>
             <button @click="showSuccess = false; screen = 'main';" class="w-full mt-4 bg-gray-900 text-white font-bold py-2.5 rounded-xl text-sm">확인</button>
+        </div>
+    </div>
+
+    <!-- 이미 등록된 날짜 경고 모달 -->
+    <div x-show="showAlreadyRegisteredModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" style="display: none;">
+        <div class="bg-white rounded-2xl p-6 max-w-sm w-full text-center shadow-xl">
+            <div class="w-12 h-12 bg-amber-100 text-amber-500 rounded-full flex items-center justify-center mx-auto mb-3 text-xl font-bold">⚠️</div>
+            <h3 class="text-lg font-bold text-gray-900">이미 재고가 입력된 날짜입니다!</h3>
+            <p class="text-xs text-gray-500 mt-2 leading-relaxed" x-text="dateLabel + '은 이미 입력이 완료되었습니다.\n수정을 원하시면 아래의 [수정하기] 기능을 이용해 주세요.'"></p>
+            <button @click="showAlreadyRegisteredModal = false" class="w-full mt-5 bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded-xl text-sm shadow-md transition-all">확인</button>
         </div>
     </div>
 
@@ -182,6 +192,7 @@
                 loadingData: false,
                 showSuccess: false,
                 showEditSelectModal: false,
+                showAlreadyRegisteredModal: false, // 이미 입력됨 경고 팝업 상태 변수 추가
                 isEditMode: false,
                 successMessage: '전송이 완료되었습니다!',
                 materials: [
@@ -202,35 +213,32 @@
                 loadDataForEdit() {
                     this.showEditSelectModal = true;
                 },
-                // 🚀 [추가됨] 입력 버튼 누를 때 이미 등록된 데이터가 있는지 사전 검사
                 checkAndGoScreen(targetZone) {
-                    this.loadingData = true;
+                    this.loadingData = true; // "데이터를 불러오는 중입니다..." 모달 작동
                     
                     fetch(`${GOOGLE_SCRIPT_URL}?date=${this.date}&zone=${targetZone}`)
                         .then(res => res.json())
                         .then(resData => {
-                            this.loadingData = false;
+                            this.loadingData = false; // 로딩 모달 닫기
                             
-                            // 데이터가 이미 존재하고, 값이 0이 아닌 항목이 하나라도 있다면 중복으로 판단
                             let hasExistingData = false;
                             if (resData && resData.data && resData.data.length > 0) {
                                 hasExistingData = resData.data.some(item => item.value !== 0 && item.value !== "" && item.value !== null);
                             }
 
                             if (hasExistingData) {
-                                alert(`⚠️ [${this.dateLabel}]은 이미 재고가 등록된 날짜입니다.\n\n이미 입력된 날짜이므로, 수정하려면 '선택한 날짜 재고 수정/조회하기'를 이용해 주세요!`);
+                                // 예쁜 경고 팝업 띄우기
+                                this.showAlreadyRegisteredModal = true;
                             } else {
-                                // 데이터가 없으면 정상적으로 신규 입력 화면으로 진입
                                 this.isEditMode = false;
                                 this.screen = targetZone;
                                 const activeItems = this.getActiveMaterials();
-                                activeItems.forEach(i => i.value = 0); // 입력창 초기화
+                                activeItems.forEach(i => i.value = 0);
                             }
                         })
                         .catch(err => {
                             this.loadingData = false;
                             console.error("중복 체크 오류:", err);
-                            // 통신 오류 시 안전하게 입력 화면으로 진입 허용
                             this.isEditMode = false;
                             this.screen = targetZone;
                         });
