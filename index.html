@@ -59,14 +59,14 @@
                 </div>
             </div>
 
-            <!-- 구역 진입 버튼 -->
+            <!-- 구역 진입 버튼 (중복 체크 함수 연결) -->
             <div class="grid grid-cols-1 gap-3 mt-6">
-                <button @click="isEditMode = false; screen = 'kitchen'" class="bg-orange-500 hover:bg-orange-600 active:scale-95 text-white p-4 rounded-2xl shadow-md text-left transition-all">
+                <button @click="checkAndGoScreen('kitchen')" class="bg-orange-500 hover:bg-orange-600 active:scale-95 text-white p-4 rounded-2xl shadow-md text-left transition-all">
                     <span class="text-xs bg-white/20 px-2 py-0.5 rounded">ZONE 01</span>
                     <h3 class="text-lg font-bold mt-1">🧑‍🍳 주방 자재 입력</h3>
                 </button>
 
-                <button @click="isEditMode = false; screen = 'hall'" class="bg-red-600 hover:bg-red-700 active:scale-95 text-white p-4 rounded-2xl shadow-md text-left transition-all">
+                <button @click="checkAndGoScreen('hall')" class="bg-red-600 hover:bg-red-700 active:scale-95 text-white p-4 rounded-2xl shadow-md text-left transition-all">
                     <span class="text-xs bg-white/20 px-2 py-0.5 rounded">ZONE 02</span>
                     <h3 class="text-lg font-bold mt-1">🥡 홀 / 포장 자재 입력</h3>
                 </button>
@@ -125,7 +125,7 @@
     <div x-show="loadingData" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" style="display: none;">
         <div class="bg-white rounded-2xl p-6 max-w-sm w-full text-center shadow-xl">
             <div class="inline-block bg-orange-100 p-3 rounded-full text-orange-500 mb-3 animate-spin text-xl">⏳</div>
-            <h3 class="text-lg font-bold text-gray-900">데이터를 불러오는 중입니다...</h3>
+            <h3 class="text-lg font-bold text-gray-900">데이터를 확인하는 중입니다...</h3>
             <p class="text-xs text-gray-500 mt-1">잠시만 기다려 주세요.</p>
         </div>
     </div>
@@ -202,6 +202,39 @@
                 loadDataForEdit() {
                     this.showEditSelectModal = true;
                 },
+                // 🚀 [추가됨] 입력 버튼 누를 때 이미 등록된 데이터가 있는지 사전 검사
+                checkAndGoScreen(targetZone) {
+                    this.loadingData = true;
+                    
+                    fetch(`${GOOGLE_SCRIPT_URL}?date=${this.date}&zone=${targetZone}`)
+                        .then(res => res.json())
+                        .then(resData => {
+                            this.loadingData = false;
+                            
+                            // 데이터가 이미 존재하고, 값이 0이 아닌 항목이 하나라도 있다면 중복으로 판단
+                            let hasExistingData = false;
+                            if (resData && resData.data && resData.data.length > 0) {
+                                hasExistingData = resData.data.some(item => item.value !== 0 && item.value !== "" && item.value !== null);
+                            }
+
+                            if (hasExistingData) {
+                                alert(`⚠️ [${this.dateLabel}]은 이미 재고가 등록된 날짜입니다.\n\n이미 입력된 날짜이므로, 수정하려면 '선택한 날짜 재고 수정/조회하기'를 이용해 주세요!`);
+                            } else {
+                                // 데이터가 없으면 정상적으로 신규 입력 화면으로 진입
+                                this.isEditMode = false;
+                                this.screen = targetZone;
+                                const activeItems = this.getActiveMaterials();
+                                activeItems.forEach(i => i.value = 0); // 입력창 초기화
+                            }
+                        })
+                        .catch(err => {
+                            this.loadingData = false;
+                            console.error("중복 체크 오류:", err);
+                            // 통신 오류 시 안전하게 입력 화면으로 진입 허용
+                            this.isEditMode = false;
+                            this.screen = targetZone;
+                        });
+                },
                 fetchExistingDataForZone(targetZone) {
                     this.showEditSelectModal = false;
                     this.isEditMode = true;
@@ -239,7 +272,7 @@
                     const payload = {
                         date: this.date,
                         zone: this.screen,
-                        isEdit: this.isEditMode, // 현재 수정 모드인지 신규 모드인지 전달
+                        isEdit: this.isEditMode, 
                         data: activeItems.map(i => ({ name: i.name, value: i.value }))
                     };
 
@@ -252,7 +285,7 @@
                     .then(resData => {
                         this.submitting = false;
                         if (resData.status === "error") {
-                            alert(resData.message); // 중복 입력 차단 메시지 출력
+                            alert(resData.message); 
                         } else {
                             this.successMessage = this.isEditMode ? '수정이 완료되었습니다!' : '전송이 완료되었습니다!';
                             this.showSuccess = true;
