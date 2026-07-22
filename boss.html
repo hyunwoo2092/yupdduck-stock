@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>사장님 전용 발주판</title>
+    <title>사장님 전용 통합 관리판</title>
     <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <style>
@@ -15,46 +15,144 @@
 
     <div class="max-w-md mx-auto bg-white min-h-screen shadow-2xl flex flex-col relative overflow-hidden">
         
-        <!-- 상단 헤더 -->
-        <div class="sticky top-0 bg-white border-b border-purple-100 z-10 px-4 py-4 flex items-center justify-between shadow-sm">
-            <div>
-                <h2 class="font-bold text-lg text-purple-900">📋 사장님 맞춤형 발주 리스트</h2>
-                <p class="text-xs text-purple-600 font-medium" x-text="dateLabel + ' 기준 실시간 재고'"></p>
-            </div>
-            <button @click="loadData()" :disabled="loading" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold transition-all disabled:opacity-50">
-                <span x-show="!loading">새로고침</span>
-                <span x-show="loading">불러오는 중..</span>
+        <!-- 최상위 3단 탭 네비게이션 메뉴 -->
+        <div class="grid grid-cols-3 bg-purple-900 text-white font-bold text-center z-20">
+            <button @click="currentTab = 'realtime'" 
+                    :class="currentTab === 'realtime' ? 'bg-purple-600 border-b-4 border-yellow-400' : 'bg-purple-900 opacity-60 hover:opacity-100'"
+                    class="py-3 text-xs transition-all">
+                📋 실시간 재고(발주)
+            </button>
+            <button @click="currentTab = 'order'" 
+                    :class="currentTab === 'order' ? 'bg-purple-600 border-b-4 border-yellow-400' : 'bg-purple-900 opacity-60 hover:opacity-100'"
+                    class="py-3 text-xs transition-all">
+                🛒 입고수량 기입
+            </button>
+            <button @click="currentTab = 'usage'" 
+                    :class="currentTab === 'usage' ? 'bg-purple-600 border-b-4 border-yellow-400' : 'bg-purple-900 opacity-60 hover:opacity-100'"
+                    class="py-3 text-xs transition-all">
+                📊 사용량 확인
             </button>
         </div>
 
-        <!-- 리스트 구역 (구글 시트 '발주화면' 탭 순서대로 정렬) -->
-        <div class="flex-1 overflow-y-auto p-4 space-y-2 pb-10">
-            <div x-show="bossMaterials.length === 0 && !loading" class="text-center text-gray-400 py-20 text-sm">
-                데이터가 없거나 구글 웹앱 연결을 확인해야 합니다.
-            </div>
-            
-            <template x-for="(item, index) in bossMaterials" :key="index">
-                <div class="flex items-center justify-between p-3 rounded-xl border transition-all"
-                     :class="item.value == 0 ? 'bg-red-50 border-red-200 shadow-sm ring-1 ring-red-300' : 'bg-white border-gray-100 shadow-2xs'">
-                    
-                    <div class="flex items-center space-x-2">
-                        <!-- 구역별 미니 태그 -->
-                        <span class="text-[10px] px-1.5 py-0.5 rounded font-bold" 
-                              :class="item.zone === '주방' ? 'bg-orange-100 text-orange-700' : 'bg-red-100 text-red-700'" 
-                              x-text="item.zone"></span>
-                        <!-- 자재 이름 -->
-                        <span class="font-bold text-sm" :class="item.value == 0 ? 'text-red-700 font-extrabold' : 'text-gray-800'" x-text="item.name"></span>
-                    </div>
-
-                    <!-- 남은 재고량 표시 디자인 -->
-                    <div class="text-right">
-                        <span class="text-sm font-black px-3 py-1.5 rounded-lg inline-block"
-                              :class="item.value == 0 ? 'bg-red-500 text-white animate-pulse' : 'bg-gray-100 text-gray-700'"
-                              x-text="item.value + ' 개'"></span>
-                    </div>
+        <!-- ========================================== -->
+        <!-- TAB 1: 기존 실시간 재고(발주화면) -->
+        <!-- ========================================== -->
+        <div x-show="currentTab === 'realtime'" class="flex-1 flex flex-col">
+            <div class="sticky top-0 bg-white border-b border-purple-100 z-10 px-4 py-4 flex items-center justify-between shadow-sm">
+                <div>
+                    <h2 class="font-bold text-base text-purple-900">📋 사장님 맞춤형 발주 리스트</h2>
+                    <p class="text-xs text-purple-600 font-medium" x-text="dateLabel + ' 기준 실시간 재고'"></p>
                 </div>
-            </template>
+                <button @click="loadRealtimeData()" :disabled="loading" class="px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold transition-all disabled:opacity-50">
+                    <span x-show="!loading">새로고침</span>
+                    <span x-show="loading">불러오는 중..</span>
+                </button>
+            </div>
+
+            <div class="flex-1 overflow-y-auto p-4 space-y-2 pb-10">
+                <div x-show="realtimeMaterials.length === 0 && !loading" class="text-center text-gray-400 py-20 text-sm">
+                    데이터가 없거나 구글 웹앱 연결을 확인해야 합니다.
+                </div>
+                
+                <template x-for="(item, index) in realtimeMaterials" :key="index">
+                    <div class="flex items-center justify-between p-3 rounded-xl border transition-all"
+                         :class="item.value == 0 ? 'bg-red-50 border-red-200 shadow-sm ring-1 ring-red-300' : 'bg-white border-gray-100 shadow-2xs'">
+                        <div class="flex items-center space-x-2">
+                            <span class="text-[10px] px-1.5 py-0.5 rounded font-bold" 
+                                  :class="item.zone === '주방' ? 'bg-orange-100 text-orange-700' : 'bg-red-100 text-red-700'" 
+                                  x-text="item.zone"></span>
+                            <span class="font-bold text-sm" :class="item.value == 0 ? 'text-red-700 font-extrabold' : 'text-gray-800'" x-text="item.name"></span>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-sm font-black px-3 py-1.5 rounded-lg inline-block"
+                                  :class="item.value == 0 ? 'bg-red-500 text-white animate-pulse' : 'bg-gray-100 text-gray-700'"
+                                  x-text="item.value + ' 개'"></span>
+                        </div>
+                    </div>
+                </template>
+            </div>
         </div>
+
+        <!-- ========================================== -->
+        <!-- TAB 2: 입고 수량 기입 화면 -->
+        <!-- ========================================== -->
+        <div x-show="currentTab === 'order'" class="flex-1 flex flex-col">
+            <div class="sticky top-0 bg-white border-b border-purple-100 z-10 px-4 py-3 flex items-center justify-between shadow-sm">
+                <div>
+                    <h2 class="font-bold text-base text-purple-900">📦 입고 수량 기입</h2>
+                    <p class="text-xs text-purple-600" x-text="selectedDate + ' 입고분'"></p>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <input type="date" x-model="selectedDate" @change="loadOrderData()" class="text-xs p-1.5 border border-purple-200 rounded-lg bg-purple-50">
+                    <button @click="loadOrderData()" :disabled="loading" class="px-3 py-2 bg-purple-600 text-white rounded-lg text-xs font-bold">
+                        새로고침
+                    </button>
+                </div>
+            </div>
+
+            <div class="flex-1 overflow-y-auto p-4 space-y-2 pb-20">
+                <div x-show="orderMaterials.length === 0 && !loading" class="text-center text-gray-400 py-20 text-sm">
+                    불러올 품목이 없습니다.
+                </div>
+                
+                <template x-for="(item, index) in orderMaterials" :key="index">
+                    <div class="flex items-center justify-between p-3 rounded-xl border bg-white border-gray-100 shadow-2xs">
+                        <div class="flex items-center space-x-2">
+                            <span class="text-[10px] px-1.5 py-0.5 rounded font-bold" 
+                                  :class="item.zone === '주방' ? 'bg-orange-100 text-orange-700' : 'bg-red-100 text-red-700'" 
+                                  x-text="item.zone"></span>
+                            <span class="font-bold text-sm text-gray-800" x-text="item.name"></span>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <input type="number" step="any" x-model.number="item.value" 
+                                   class="w-20 p-1.5 text-right font-bold text-sm border border-gray-300 rounded-lg focus:border-purple-600 focus:outline-none bg-gray-50">
+                            <span class="text-xs text-gray-500">개</span>
+                        </div>
+                    </div>
+                </template>
+            </div>
+
+            <div class="p-4 bg-white border-t border-gray-100 absolute bottom-0 left-0 right-0">
+                <button @click="submitOrder()" :disabled="loading" class="w-full py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl shadow-lg transition-all text-sm">
+                    <span x-show="!loading">입고 수량 저장하기</span>
+                    <span x-show="loading">저장 중...</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- TAB 3: 사용량 확인 화면 -->
+        <!-- ========================================== -->
+        <div x-show="currentTab === 'usage'" class="flex-1 flex flex-col">
+            <div class="sticky top-0 bg-white border-b border-purple-100 z-10 px-4 py-3 flex items-center justify-between shadow-sm">
+                <div>
+                    <h2 class="font-bold text-base text-purple-900">📈 주기별 사용량 계산</h2>
+                    <p class="text-xs text-purple-600">토·일·월 / 화·수 / 목·금 자동 분석</p>
+                </div>
+                <button @click="loadUsageData()" :disabled="loading" class="px-3 py-2 bg-purple-600 text-white rounded-lg text-xs font-bold">
+                    새로고침
+                </button>
+            </div>
+
+            <div class="flex-1 overflow-y-auto p-4 space-y-2 pb-10">
+                <div x-show="usageMaterials.length === 0 && !loading" class="text-center text-gray-400 py-20 text-sm">
+                    사용량 데이터를 불러오는 중이거나 데이터가 없습니다.
+                </div>
+                
+                <template x-for="(item, index) in usageMaterials" :key="index">
+                    <div class="p-3 rounded-xl border bg-white border-gray-100 shadow-2xs flex flex-col space-y-1">
+                        <div class="flex justify-between items-center">
+                            <span class="font-bold text-sm text-gray-800" x-text="item.name"></span>
+                            <span class="text-xs px-2 py-0.5 bg-blue-50 text-blue-700 font-bold rounded" x-text="(item.periodLabel || '주기별') + ' 사용량'"></span>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-base font-black text-purple-700" x-text="(item.calculatedUsage !== undefined ? item.calculatedUsage : 0) + ' 개'"></span>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </div>
+
     </div>
 
     <script>
@@ -62,25 +160,91 @@
             const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycby2Ffz6X_59txLUdq8mATPE3Ea9UNrxk6lrXc0Nqld5mm7OjtVFWPt3A65lXxYlegi_vw/exec";
 
             return {
+                currentTab: 'realtime', // 첫 화면은 기존 실시간 재고 화면으로 지정
                 loading: false,
-                bossMaterials: [],
                 dateLabel: '',
+                selectedDate: '',
+                realtimeMaterials: [],
+                orderMaterials: [],
+                usageMaterials: [],
+
                 init() {
                     const today = new Date();
+                    this.selectedDate = today.toISOString().split('T')[0];
                     this.dateLabel = `${today.getFullYear()}년 ${today.getMonth()+1}월 ${today.getDate()}일`;
-                    this.loadData();
+                    
+                    this.loadRealtimeData();
+                    this.loadOrderData();
+                    this.loadUsageData();
                 },
-                loadData() {
+
+                // 1. 실시간 재고 데이터 로드 (기존 기능)
+                loadRealtimeData() {
                     this.loading = true;
                     fetch(GOOGLE_SCRIPT_URL)
                     .then(res => res.json())
                     .then(data => { 
-                        this.bossMaterials = data; 
+                        this.realtimeMaterials = data; 
                         this.loading = false; 
                     })
                     .catch(err => { 
-                        alert("구글 시트 순서를 가져오지 못했습니다: " + err); 
                         this.loading = false; 
+                    });
+                },
+
+                // 2. 입고 화면 데이터 로드
+                loadOrderData() {
+                    this.loading = true;
+                    fetch(`${GOOGLE_SCRIPT_URL}?date=${this.selectedDate}&type=order`)
+                    .then(res => res.json())
+                    .then(data => { 
+                        this.orderMaterials = data; 
+                        this.loading = false; 
+                    })
+                    .catch(err => { 
+                        this.loading = false; 
+                    });
+                },
+
+                // 3. 입고 데이터 서버 저장
+                submitOrder() {
+                    this.loading = true;
+                    const payload = {
+                        type: 'saveOrder',
+                        date: this.selectedDate,
+                        data: this.orderMaterials
+                    };
+
+                    fetch(GOOGLE_SCRIPT_URL, {
+                        method: "POST",
+                        body: JSON.stringify(payload)
+                    })
+                    .then(res => res.json())
+                    .then(res => {
+                        this.loading = false;
+                        if(res.status === 'success') {
+                            alert("입고 수량이 성공적으로 저장되었습니다!");
+                        } else {
+                            alert("저장 실패: " + res.message);
+                        }
+                    })
+                    .catch(err => {
+                        this.loading = false;
+                        alert("통신 오류: " + err);
+                    });
+                },
+
+                // 4. 사용량 데이터 로드
+                loadUsageData() {
+                    this.loading = true;
+                    fetch(`${GOOGLE_SCRIPT_URL}?type=usage`)
+                    .then(res => res.json())
+                    .then(data => {
+                        this.usageMaterials = data;
+                        this.loading = false;
+                    })
+                    .catch(err => {
+                        this.loading = false;
                     });
                 }
             }
