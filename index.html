@@ -53,13 +53,6 @@
                     <input type="date" x-model="date" @change="updateDateLabel()" class="w-full text-lg font-bold text-gray-800 border-none p-0 bg-transparent focus:ring-0 cursor-pointer">
                 </div>
 
-                <!-- [2순위] 월수금 발주 거래명세표 사진 등록 버튼 -->
-                <div class="mt-4">
-                    <button @click="openReceiptModal()" class="w-full bg-blue-600 hover:bg-blue-700 active:scale-95 text-white p-4 rounded-2xl shadow-md text-center transition-all font-bold text-sm flex items-center justify-center space-x-2">
-                        <span>📸 월수금 발주 거래명세표 사진 등록</span>
-                    </button>
-                </div>
-
                 <!-- 안내 문구 박스 -->
                 <div class="notice-box blinking-notice">
                     ⚠️ <span class="underline underline-offset-4">애매한 수량은 소수점 표시해주세요 (예시: 1.8)</span>
@@ -157,30 +150,6 @@
         </div>
     </div>
 
-    <!-- 거래명세표 사진 업로드 모달 -->
-    <div x-show="showReceiptModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" style="display: none;">
-        <div class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl text-center">
-            <div class="w-12 h-12 bg-blue-100 text-blue-500 rounded-full flex items-center justify-center mx-auto mb-3 text-xl font-bold">📸</div>
-            <h3 class="text-lg font-bold text-gray-900">거래명세표 사진 등록</h3>
-            <p class="text-xs text-gray-500 mt-1" x-text="dateLabel + ' 도착한 발주 물량 AI 자동 분석'"></p>
-            
-            <div class="mt-4">
-                <label class="block w-full border-2 border-dashed border-gray-300 rounded-xl p-6 cursor-pointer hover:border-blue-500 bg-gray-50">
-                    <span class="text-sm font-bold text-gray-600" x-text="receiptFile ? receiptFile.name : '터치해서 사진 찍기 또는 업로드'"></span>
-                    <input type="file" accept="image/*" capture="environment" @change="handleFileSelect($event)" class="hidden">
-                </label>
-            </div>
-
-            <div class="grid grid-cols-2 gap-2 mt-4">
-                <button @click="showReceiptModal = false" class="bg-gray-100 text-gray-600 font-bold py-3 rounded-xl text-sm">취소</button>
-                <button @click="uploadReceiptPhoto()" :disabled="uploading" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl text-sm shadow disabled:opacity-50">
-                    <span x-show="!uploading">AI 분석 및 전송</span>
-                    <span x-show="uploading">AI 판독 중...</span>
-                </button>
-            </div>
-        </div>
-    </div>
-
     <script>
         function stockApp() {
             const kitchenList = ["꿔바로우","감자채","김말이","야채","만두","엽봉","바삭","야채죽(냉장고포함)","우동사리","베이컨(3,0)","무뼈닭발","통뼈닭발","떡","길쭉이","넓적이","햄","양배추(망)","양배추(손질봉지)","대파","엽봉소스","꿔바소스","다진마늘","우삼겹트레이","유부","국물닭발가루양념","감자","당근","양파","불고기간장(1,0)","계란찜스프(1,0)","핫불소스(봉지)","핫불소스(낱개)","음식물쓰레기봉투"];
@@ -193,13 +162,10 @@
                 date: new Date().toISOString().slice(0, 10),
                 dateLabel: '',
                 submitting: false,
-                uploading: false,
                 showSuccess: false,
                 showEditSelectModal: false,
-                showReceiptModal: false,
                 isEditMode: false,
                 successMessage: '전송이 완료되었습니다!',
-                receiptFile: null,
                 materials: [
                     ...kitchenList.map(name => ({ name, zone: 'kitchen', value: 0 })),
                     ...hallList.map(name => ({ name, zone: 'hall', value: 0 }))
@@ -217,51 +183,6 @@
                 },
                 loadDataForEdit() {
                     this.showEditSelectModal = true;
-                },
-                openReceiptModal() {
-                    this.receiptFile = null;
-                    this.showReceiptModal = true;
-                },
-                handleFileSelect(event) {
-                    if (event.target.files && event.target.files[0]) {
-                        this.receiptFile = event.target.files[0];
-                    }
-                },
-                uploadReceiptPhoto() {
-                    if (!this.receiptFile) {
-                        alert("업로드할 거래명세표 사진을 선택해주세요.");
-                        return;
-                    }
-                    this.uploading = true;
-                    
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                        const base64String = e.target.result.split(',')[1];
-                        const payload = {
-                            type: 'receipt',
-                            date: this.date,
-                            mimeType: this.receiptFile.type,
-                            image: base64String
-                        };
-
-                        fetch(GOOGLE_SCRIPT_URL, {
-                            method: "POST",
-                            headers: { "Content-Type": "text/plain;charset=utf-8" },
-                            body: JSON.stringify(payload)
-                        })
-                        .then(res => res.json())
-                        .then(resData => {
-                            this.uploading = false;
-                            this.showReceiptModal = false;
-                            this.successMessage = '거래명세표 AI 판독 및 시트 기록이 완료되었습니다!';
-                            this.showSuccess = true;
-                        })
-                        .catch(err => {
-                            alert("전송에 실패했습니다: " + err);
-                            this.uploading = false;
-                        });
-                    };
-                    reader.readAsDataURL(this.receiptFile);
                 },
                 fetchExistingDataForZone(targetZone) {
                     this.showEditSelectModal = false;
