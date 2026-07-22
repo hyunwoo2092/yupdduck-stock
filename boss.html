@@ -117,30 +117,74 @@
         </div>
 
         <!-- TAB 3: 사용량 확인 -->
-        <div x-show="currentTab === 'usage'" class="flex-1 flex flex-col">
+        <div x-show="currentTab === 'usage'" class="flex-1 flex flex-col bg-purple-50/50">
+            <!-- 상단 헤더 및 필터 -->
             <div class="sticky top-0 bg-white border-b border-purple-100 z-10 px-4 py-3 flex items-center justify-between shadow-sm">
                 <div>
-                    <h2 class="font-bold text-base text-purple-900">📈 주기별 사용량 확인</h2>
-                    <p class="text-xs text-purple-600">입고 데이터를 기반으로 한 사용량 분석</p>
+                    <h2 class="font-bold text-base text-purple-900">📊 주기별 사용량 리포트</h2>
+                    <p class="text-[11px] text-gray-500 font-medium">최근 및 직전 주기 데이터 비교</p>
                 </div>
-                <button @click="loadUsageData()" :disabled="loading" class="px-3 py-2 bg-purple-600 text-white rounded-lg text-xs font-bold">
-                    새로고침
+                <button @click="loadUsageData()" :disabled="loading" class="px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs">
+                    🔄 새로고침
                 </button>
             </div>
 
-            <div class="flex-1 overflow-y-auto p-4 space-y-2 pb-10">
+            <!-- 사용량 리스트 영역 -->
+            <div class="flex-1 overflow-y-auto p-4 space-y-3 pb-10">
                 <div x-show="usageMaterials.length === 0 && !loading" class="text-center text-gray-400 py-20 text-sm">
                     사용량 데이터를 불러오는 중이거나 데이터가 없습니다.
                 </div>
                 
+                <!-- 자재별 카드 반복 시작 -->
                 <template x-for="(item, index) in usageMaterials" :key="index">
-                    <div class="p-3 rounded-xl border bg-white border-gray-100 shadow-2xs flex flex-col space-y-1">
-                        <div class="flex justify-between items-center">
-                            <span class="font-bold text-sm text-gray-800" x-text="item.name"></span>
-                            <span class="text-xs px-2 py-0.5 bg-blue-50 text-blue-700 font-bold rounded" x-text="(item.periodLabel || '입고분') + ' 수량'"></span>
+                    <div class="p-4 rounded-2xl border bg-white border-purple-100 shadow-sm flex flex-col space-y-3 hover:shadow-md transition-all">
+                        
+                        <!-- 자재 정보 헤더 -->
+                        <div class="flex justify-between items-center border-b border-gray-100 pb-2">
+                            <div class="flex items-center space-x-2">
+                                <span class="text-[10px] px-2 py-0.5 rounded-md font-bold" 
+                                      :class="item.zone === '주방' ? 'bg-orange-100 text-orange-700' : 'bg-red-100 text-red-700'" 
+                                      x-text="item.zone"></span>
+                                <span class="font-bold text-base text-gray-800" x-text="item.name"></span>
+                            </div>
                         </div>
-                        <div class="text-right">
-                            <span class="text-base font-black text-purple-700" x-text="(item.calculatedUsage !== undefined ? item.calculatedUsage : 0) + ' 개'"></span>
+
+                        <!-- 3가지 주기 데이터 그리드 레이아웃 -->
+                        <div class="grid grid-cols-3 gap-2 text-center">
+                            
+                            <!-- 1. 토, 일, 월 -->
+                            <div class="bg-gray-50 rounded-xl p-2 flex flex-col justify-between border border-gray-100">
+                                <span class="text-[11px] font-bold text-purple-900 mb-1 block">📅 토·일·월</span>
+                                <div class="my-1">
+                                    <span class="text-sm font-black text-gray-800" x-text="(item.satMonCurrent ?? 0) + '개'"></span>
+                                </div>
+                                <div class="text-[10px] text-gray-400 border-t border-dashed border-gray-200 pt-1 mt-1">
+                                    직전: <span class="font-semibold text-gray-600" x-text="(item.satMonPrev ?? 0) + '개'"></span>
+                                </div>
+                            </div>
+
+                            <!-- 2. 화, 수 -->
+                            <div class="bg-gray-50 rounded-xl p-2 flex flex-col justify-between border border-gray-100">
+                                <span class="text-[11px] font-bold text-purple-900 mb-1 block">📅 화·수</span>
+                                <div class="my-1">
+                                    <span class="text-sm font-black text-gray-800" x-text="(item.tueWedCurrent ?? 0) + '개'"></span>
+                                </div>
+                                <div class="text-[10px] text-gray-400 border-t border-dashed border-gray-200 pt-1 mt-1">
+                                    직전: <span class="font-semibold text-gray-600" x-text="(item.tueWedPrev ?? 0) + '개'"></span>
+                                </div>
+                            </div>
+
+                            <!-- 3. 목, 금 -->
+                            <div class="bg-gray-50 rounded-xl p-2 flex flex-col justify-between border border-gray-100">
+                                <span class="text-[11px] font-bold text-purple-900 mb-1 block">📅 목·금</span>
+                                <div class="my-1">
+                                    <span class="text-sm font-black text-gray-800" x-text="(item.thuFriCurrent ?? 0) + '개'"></span>
+                                </div>
+                                <div class="text-[10px] text-gray-400 border-t border-dashed border-gray-200 pt-1 mt-1">
+                                    직전: <span class="font-semibold text-gray-600" x-text="(item.thuFriPrev ?? 0) + '개'"></span>
+                                </div>
+                            </div>
+
                         </div>
                     </div>
                 </template>
@@ -185,7 +229,6 @@
 
                 loadOrderData() {
                     this.loading = true;
-                    // type=order 파라미터를 주어 입고 기입란은 값이 비어있도록(0 또는 빈칸) 불러옴
                     fetch(`${GOOGLE_SCRIPT_URL}?date=${this.selectedDate}&type=order`)
                     .then(res => res.json())
                     .then(res => { 
@@ -199,7 +242,7 @@
                     this.loading = true;
                     const payload = {
                         date: this.selectedDate,
-                        sheetType: "usage", // '사용량' 시트에 저장되도록 지정
+                        sheetType: "usage",
                         isEdit: true,
                         data: this.orderMaterials
                     };
@@ -226,7 +269,6 @@
 
                 loadUsageData() {
                     this.loading = true;
-                    // usage 시트 데이터를 불러오도록 type=usage 파라미터 전달
                     fetch(`${GOOGLE_SCRIPT_URL}?date=${this.selectedDate}&type=usage`)
                     .then(res => res.json())
                     .then(res => {
