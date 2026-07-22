@@ -192,7 +192,7 @@
                 loadingData: false,
                 showSuccess: false,
                 showEditSelectModal: false,
-                showAlreadyRegisteredModal: false, // 이미 입력됨 경고 팝업 상태 변수 추가
+                showAlreadyRegisteredModal: false,
                 isEditMode: false,
                 successMessage: '전송이 완료되었습니다!',
                 materials: [
@@ -214,20 +214,25 @@
                     this.showEditSelectModal = true;
                 },
                 checkAndGoScreen(targetZone) {
-                    this.loadingData = true; // "데이터를 불러오는 중입니다..." 모달 작동
+                    this.loadingData = true;
                     
                     fetch(`${GOOGLE_SCRIPT_URL}?date=${this.date}&zone=${targetZone}`)
                         .then(res => res.json())
                         .then(resData => {
-                            this.loadingData = false; // 로딩 모달 닫기
+                            this.loadingData = false;
                             
+                            // 서버에서 내려준 isClosed가 true이거나 데이터에 값이 존재하는지 확인
                             let hasExistingData = false;
-                            if (resData && resData.data && resData.data.length > 0) {
-                                hasExistingData = resData.data.some(item => item.value !== 0 && item.value !== "" && item.value !== null);
+                            if (resData) {
+                                if (resData.isClosed === true) {
+                                    hasExistingData = true;
+                                } else if (resData.data && resData.data.length > 0) {
+                                    hasExistingData = resData.data.some(item => item.value !== 0 && item.value !== "" && item.value !== null && item.value !== undefined);
+                                }
                             }
 
                             if (hasExistingData) {
-                                // 예쁜 경고 팝업 띄우기
+                                // 이미 등록된 날짜 경고 팝업 띄우기
                                 this.showAlreadyRegisteredModal = true;
                             } else {
                                 this.isEditMode = false;
