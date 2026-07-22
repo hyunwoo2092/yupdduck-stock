@@ -113,7 +113,7 @@
             </div>
 
             <div class="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-100 p-4 shadow-lg">
-                <button @click="submitToGoogleSheet()" :disabled="submitting" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-4 rounded-xl shadow-md transition-all flex items-center justify-center disabled:opacity-50">
+                <button @click="submitToGoogleSheet()" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-4 rounded-xl shadow-md transition-all flex items-center justify-center">
                     <span x-text="isEditMode ? '수정 내용 구글시트에 덮어쓰기' : ((screen === 'kitchen' ? '주방' : '홀') + ' 데이터 구글시트 전송')"></span>
                 </button>
             </div>
@@ -130,7 +130,7 @@
         </div>
     </div>
 
-    <!-- 데이터 저장 중 로딩 모달 (새로 추가됨!) -->
+    <!-- 데이터 저장 중 로딩 모달 -->
     <div x-show="submitting" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" style="display: none;">
         <div class="bg-white rounded-2xl p-6 max-w-sm w-full text-center shadow-xl">
             <div class="inline-block bg-orange-100 p-3 rounded-full text-orange-500 mb-3 animate-spin text-xl">💾</div>
@@ -178,8 +178,8 @@
                 screen: 'main',
                 date: new Date().toISOString().slice(0, 10),
                 dateLabel: '',
-                submitting: false,      // 저장 중 로딩 상태
-                loadingData: false,     // 불러오는 중 로딩 상태
+                submitting: false,
+                loadingData: false,
                 showSuccess: false,
                 showEditSelectModal: false,
                 isEditMode: false,
@@ -210,12 +210,12 @@
                     const activeItems = this.getActiveMaterials();
                     activeItems.forEach(i => i.value = 0);
 
-                    this.loadingData = true; // ⏳ 불러오는 중 로딩 켜기
+                    this.loadingData = true;
 
                     fetch(`${GOOGLE_SCRIPT_URL}?date=${this.date}&zone=${targetZone}`)
                         .then(res => res.json())
                         .then(resData => {
-                            this.loadingData = false; // 🛑 불러오는 중 로딩 끄기
+                            this.loadingData = false;
                             if (resData && resData.data && resData.data.length > 0) {
                                 resData.data.forEach(savedItem => {
                                     const target = activeItems.find(i => i.name === savedItem.name);
@@ -228,18 +228,18 @@
                             }
                         })
                         .catch(err => {
-                            this.loadingData = false; // 🛑 에러 시 로딩 끄기
+                            this.loadingData = false;
                             console.error("데이터 조회 오류:", err);
                             alert("데이터를 불러오는 중 문제가 발생했습니다.");
                         });
                 },
                 submitToGoogleSheet() {
-                    this.submitting = true; // 💾 저장 중 로딩 켜기
+                    this.submitting = true;
                     const activeItems = this.getActiveMaterials();
                     const payload = {
                         date: this.date,
                         zone: this.screen,
-                        isEdit: this.isEditMode,
+                        isEdit: this.isEditMode, // 현재 수정 모드인지 신규 모드인지 전달
                         data: activeItems.map(i => ({ name: i.name, value: i.value }))
                     };
 
@@ -250,12 +250,16 @@
                     })
                     .then(res => res.json())
                     .then(resData => {
-                        this.submitting = false; // 🛑 저장 중 로딩 끄기
-                        this.successMessage = this.isEditMode ? '수정이 완료되었습니다!' : '전송이 완료되었습니다!';
-                        this.showSuccess = true;
+                        this.submitting = false;
+                        if (resData.status === "error") {
+                            alert(resData.message); // 중복 입력 차단 메시지 출력
+                        } else {
+                            this.successMessage = this.isEditMode ? '수정이 완료되었습니다!' : '전송이 완료되었습니다!';
+                            this.showSuccess = true;
+                        }
                     })
                     .catch(err => {
-                        this.submitting = false; // 🛑 에러 시 로딩 끄기
+                        this.submitting = false;
                         alert("구글 시트 전송에 실패했습니다: " + err);
                     });
                 }
