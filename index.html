@@ -142,7 +142,6 @@
                         data: activeItems.map(i => ({ name: i.name, value: i.value }))
                     };
 
-                    // 본인의 구글 웹 앱 URL 주소
                     const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycby2Ffz6X_59txLUdq8mATPE3Ea9UNrxk6lrXc0Nqld5mm7OjtVFWPt3A65lXxYlegi_vw/exec";
 
                     if (GOOGLE_SCRIPT_URL.startsWith("http")) {
@@ -151,15 +150,11 @@
                             headers: { "Content-Type": "text/plain;charset=utf-8" },
                             body: JSON.stringify(payload)
                         })
-                        .then(res => res.json())
-                        .then(resData => {
+                        .then(res => res.text())
+                        .then(text => {
                             this.submitting = false;
-                            if(resData.status === "success") {
-                                this.showSuccess = true;
-                                activeItems.forEach(i => i.value = 0);
-                            } else {
-                                alert("저장 실패: " + resData.message);
-                            }
+                            this.showSuccess = true;
+                            activeItems.forEach(i => i.value = 0);
                         })
                         .catch(err => {
                             alert("구글 시트 전송에 실패했습니다: " + err);
