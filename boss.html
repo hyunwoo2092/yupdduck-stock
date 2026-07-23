@@ -15,7 +15,7 @@
 
     <div class="max-w-md mx-auto bg-white min-h-screen shadow-2xl flex flex-col relative overflow-hidden">
         
-        <!-- 최상위 4단 탭 네비게이션 메뉴 (3단 -> 4단으로 확장) -->
+        <!-- 최상위 4단 탭 네비게이션 메뉴 -->
         <div class="grid grid-cols-4 bg-purple-900 text-white font-bold text-center z-20">
             <button @click="currentTab = 'realtime'" 
                     :class="currentTab === 'realtime' ? 'bg-purple-600 border-b-4 border-yellow-400' : 'bg-purple-900 opacity-60 hover:opacity-100'"
@@ -185,7 +185,7 @@
             </div>
         </div>
 
-        <!-- TAB 4: 💸 누락 정산 관리 (신규 추가된 사장님 전용 탭) -->
+        <!-- TAB 4: 💸 누락 정산 관리 -->
         <div x-show="currentTab === 'missing'" class="flex-1 flex flex-col bg-gray-50">
             <div class="sticky top-0 bg-white border-b border-purple-100 z-10 px-4 py-3 flex items-center justify-between shadow-sm">
                 <div>
@@ -198,11 +198,8 @@
             </div>
 
             <div class="flex-1 overflow-y-auto p-4 space-y-3 pb-10">
-                <div x-show="missingItems.length === 0 && !loading" class="text-center text-gray-400 py-20 text-sm">
-                    등록된 누락 환불 요청이 없습니다.
-                </div>
-
-                <template x-for="(item, index) in missingItems" :key="index">
+                <!-- 대기 중인 항목만 필터링하여 보여줌 ('완료'된 항목은 화면에서 즉시 숨김) -->
+                <template x-for="(item, index) in missingItems.filter(i => i.status !== '완료')" :key="item.rowIndex || index">
                     <div class="bg-white rounded-2xl p-4 border border-purple-100 shadow-sm flex flex-col space-y-3">
                         <!-- 상단: 등록자 및 날짜 / 상태뱃지 -->
                         <div class="flex justify-between items-center border-b border-gray-100 pb-2">
@@ -210,9 +207,7 @@
                                 <span class="bg-purple-100 text-purple-800 font-bold text-xs px-2 py-0.5 rounded-md" x-text="item.staffName || '직원'"></span>
                                 <span class="text-xs text-gray-400" x-text="item.timestamp"></span>
                             </div>
-                            <span class="text-xs font-bold px-2 py-0.5 rounded-full"
-                                  :class="item.status === '완료' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'"
-                                  x-text="item.status === '완료' ? '✅ 송금완료' : '⏳ 처리대기'"></span>
+                            <span class="text-xs font-bold px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700">⏳ 처리대기</span>
                         </div>
 
                         <!-- 중단: 정보 및 빌지 사진 -->
@@ -240,16 +235,19 @@
                             </div>
                         </div>
 
-                        <!-- 하단: 송금완료 토글 버튼 -->
+                        <!-- 하단: 송금완료 버튼 -->
                         <div class="pt-1 flex justify-end">
-                            <button @click="toggleStatus(index)" 
-                                    class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-2xs"
-                                    :class="item.status === '완료' ? 'bg-gray-100 text-gray-600 hover:bg-gray-200' : 'bg-purple-600 text-white hover:bg-purple-700'"
-                                    x-text="item.status === '완료' ? '처리 대기중으로 변경' : '송금 완료 처리하기'">
+                            <button @click="toggleStatus(item)" 
+                                    class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-2xs bg-purple-600 text-white hover:bg-purple-700">
+                                송금 완료 처리하기
                             </button>
                         </div>
                     </div>
                 </template>
+
+                <div x-show="missingItems.filter(i => i.status !== '완료').length === 0 && !loading" class="text-center text-gray-400 py-20 text-sm">
+                    처리 대기 중인 누락 환불 요청이 없습니다. 🎉
+                </div>
             </div>
         </div>
 
@@ -275,7 +273,7 @@
                 realtimeMaterials: [],
                 orderMaterials: [],
                 usageMaterials: [],
-                missingItems: [], // 누락 정산 리스트 데이터
+                missingItems: [], 
                 showModal: false,
                 modalImageUrl: '',
 
@@ -287,7 +285,7 @@
                     this.loadRealtimeData();
                     this.loadOrderData();
                     this.loadUsageData();
-                    this.loadMissingData(); // 페이지 접속 시 누락 데이터 로드
+                    this.loadMissingData();
                 },
 
                 loadRealtimeData() {
@@ -352,7 +350,6 @@
                     .catch(err => { this.loading = false; });
                 },
 
-                // 💸 누락 정산 데이터 불러오기 함수
                 loadMissingData() {
                     this.loading = true;
                     fetch(`${GOOGLE_SCRIPT_URL}?type=missing`)
@@ -363,29 +360,40 @@
                     })
                     .catch(err => { 
                         this.loading = false; 
-                        // 예시 더미 데이터 (구글 앱스 스크립트 연결 전 UI 확인용)
-                        /*
-                        this.missingItems = [
-                            { staffName: '김직원', timestamp: '2026-06-07 14:20', reason: '배달 수수료 누락분', amount: 15000, bankAccount: '국민 123456-04-789123', imageUrl: 'https://via.placeholder.com/300', status: '대기' }
-                        ];
-                        */
                     });
                 },
 
-                // 이미지 모달 열기
                 openImageModal(url) {
                     if(!url) return;
                     this.modalImageUrl = url;
                     this.showModal = true;
                 },
 
-                // 송금 상태 변경 토글
-                toggleStatus(index) {
-                    this.missingItems[index].status = this.missingItems[index].status === '완료' ? '대기' : '완료';
-                    // 필요시 서버로 상태 변경 POST 요청 추가 가능
+                // 💸 송금 완료 처리 시 화면에서 숨기고 서버(구글시트) 상태 업데이트
+                toggleStatus(item) {
+                    item.status = '완료'; // 화면 목록에서 즉시 숨겨지도록 상태 변경
+
+                    const payload = {
+                        sheetType: "missingUpdate",
+                        rowIndex: item.rowIndex,
+                        status: "완료"
+                    };
+
+                    fetch(GOOGLE_SCRIPT_URL, {
+                        method: "POST",
+                        body: JSON.stringify(payload)
+                    })
+                    .then(res => res.json())
+                    .then(res => {
+                        if(res.status !== 'success') {
+                            alert("서버 상태 반영 중 문제가 발생했습니다: " + (res.message || ''));
+                        }
+                    })
+                    .catch(err => {
+                        console.error("상태 업데이트 통신 오류:", err);
+                    });
                 },
 
-                // 금액 콤마 포맷 함수
                 numberFormat(val) {
                     if(!val) return 0;
                     return Number(val).toLocaleString();
