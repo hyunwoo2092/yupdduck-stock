@@ -71,7 +71,7 @@
                     <h3 class="text-lg font-bold mt-1">🥡 홀 / 포장 자재 입력</h3>
                 </button>
 
-                <!-- ✨ 새로 추가된 누락·환불 등록 메뉴 버튼 -->
+                <!-- ✨ 누락·환불 등록 메뉴 버튼 -->
                 <button @click="screen = 'refund'" class="bg-purple-600 hover:bg-purple-700 active:scale-95 text-white p-4 rounded-2xl shadow-md text-left transition-all">
                     <span class="text-xs bg-white/20 px-2 py-0.5 rounded">REGULAR 03</span>
                     <h3 class="text-lg font-bold mt-1">🧾 누락·환불 건 등록</h3>
@@ -139,10 +139,29 @@
             </div>
 
             <div class="flex-1 overflow-y-auto p-4 space-y-4 pb-32">
-                <!-- 빌지 사진 업로드 -->
+                
+                <!-- 작성자 입력 칸 -->
+                <div class="bg-gray-50 p-4 rounded-2xl border border-gray-200">
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">👤 작성자 (직원 이름)</label>
+                    <input type="text" x-model="refundForm.author" placeholder="예: 김철수" class="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm focus:border-purple-500 focus:outline-none">
+                </div>
+
+                <!-- ✨ 빌지 사진 촬영/첨부 (카메라 바로 켜기 & 파일 선택 버튼 분리 적용) -->
                 <div class="bg-gray-50 p-4 rounded-2xl border border-gray-200">
                     <label class="block text-xs font-bold text-gray-500 uppercase mb-2">📸 빌지 사진 촬영/첨부</label>
-                    <input type="file" accept="image/*" capture="environment" @change="handleImageUpload($event)" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100 cursor-pointer">
+                    
+                    <div class="grid grid-cols-2 gap-2">
+                        <!-- 카메라 직접 촬영 버튼 -->
+                        <label class="cursor-pointer bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-xl text-sm text-center shadow-sm transition-all flex items-center justify-center space-x-1">
+                            <span>📷 카메라 촬영</span>
+                            <input type="file" accept="image/*" capture="environment" @change="handleImageUpload($event)" class="hidden">
+                        </label>
+                        <!-- 갤러리/파일 선택 버튼 -->
+                        <label class="cursor-pointer bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-bold py-3 px-4 rounded-xl text-sm text-center shadow-sm transition-all flex items-center justify-center space-x-1">
+                            <span>📁 갤러리 선택</span>
+                            <input type="file" accept="image/*" @change="handleImageUpload($event)" class="hidden">
+                        </label>
+                    </div>
                     
                     <!-- 미리보기 -->
                     <template x-if="refundForm.imagePreview">
@@ -159,7 +178,7 @@
                     <textarea x-model="refundForm.reason" rows="3" placeholder="예: 단무지 누락으로 인한 부분 환불" class="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm focus:border-purple-500 focus:outline-none resize-none"></textarea>
                 </div>
 
-                <!-- 계좌번호 및 예금주 입력 -->
+                <!-- 계좌번호 및 환불 정보 입력 -->
                 <div class="bg-gray-50 p-4 rounded-2xl border border-gray-200 space-y-3">
                     <div>
                         <label class="block text-xs font-bold text-gray-500 uppercase mb-1">🏦 환불받을 은행</label>
@@ -172,6 +191,24 @@
                     <div>
                         <label class="block text-xs font-bold text-gray-500 uppercase mb-1">👤 예금주 성명</label>
                         <input type="text" x-model="refundForm.depositor" placeholder="예: 홍길동" class="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm focus:border-purple-500 focus:outline-none">
+                    </div>
+
+                    <!-- 환불 품목 및 환불 금액 -->
+                    <div class="pt-2 border-t border-gray-200 space-y-3">
+                        <div>
+                            <label class="block text-xs font-bold text-purple-600 uppercase mb-1">📦 환불 품목</label>
+                            <input type="text" x-model="refundForm.item" placeholder="예: 오리지널 떡볶이" class="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm focus:border-purple-500 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-purple-600 uppercase mb-1">💰 환불 금액</label>
+                            <input type="number" x-model="refundForm.amount" placeholder="예: 14000 (숫자만 입력)" class="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm focus:border-purple-500 focus:outline-none">
+                        </div>
+                    </div>
+
+                    <!-- ✨ 서비스 고유번호(4자리) 입력 칸 추가 -->
+                    <div class="pt-2 border-t border-gray-200">
+                        <label class="block text-xs font-bold text-purple-600 uppercase mb-1">🔢 서비스 고유번호 (4자리)</label>
+                        <input type="text" maxlength="4" x-model="refundForm.serviceCode" placeholder="예: 1234 (숫자 4자리)" class="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm focus:border-purple-500 focus:outline-none">
                     </div>
                 </div>
             </div>
@@ -253,14 +290,18 @@
                 isEditMode: false,
                 successMessage: '전송이 완료되었습니다!',
                 
-                // 누락·환불 폼 데이터 상태
+                // 누락·환불 폼 데이터 상태 (서비스 고유번호 serviceCode 추가됨)
                 refundForm: {
+                    author: '',
                     imagePreview: '',
                     imageBase64: '',
                     reason: '',
                     bank: '',
                     account: '',
-                    depositor: ''
+                    depositor: '',
+                    item: '',
+                    amount: '',
+                    serviceCode: ''
                 },
 
                 materials: [
@@ -349,8 +390,8 @@
                 },
                 // 누락·환불 데이터 전송
                 submitRefundToGoogleSheet() {
-                    if (!this.refundForm.reason || !this.refundForm.account) {
-                        alert("사유와 계좌번호는 필수 입력 항목입니다!");
+                    if (!this.refundForm.author || !this.refundForm.reason || !this.refundForm.account) {
+                        alert("작성자, 사유, 계좌번호는 필수 입력 항목입니다!");
                         return;
                     }
                     this.submitting = true;
@@ -374,7 +415,7 @@
                             this.successMessage = '누락·환불 건이 전송되었습니다!';
                             this.showSuccess = true;
                             // 폼 초기화
-                            this.refundForm = { imagePreview: '', imageBase64: '', reason: '', bank: '', account: '', depositor: '' };
+                            this.refundForm = { author: '', imagePreview: '', imageBase64: '', reason: '', bank: '', account: '', depositor: '', item: '', amount: '', serviceCode: '' };
                         }
                     })
                     .catch(err => {
