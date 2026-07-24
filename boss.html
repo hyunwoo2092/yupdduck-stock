@@ -230,8 +230,8 @@
                                     </div>
                                     <div>
                                         <span class="text-purple-700 font-bold text-[10px]">🔢 서비스번호:</span> 
-                                        <!-- 서비스 번호 매핑 보완 (serviceNo, serviceNumber 등 대응) -->
-                                        <span class="font-semibold text-gray-800" x-text="item.serviceNo || item.serviceNumber || item.service || '정보 없음'"></span>
+                                        <!-- 서비스 번호 매핑 (serviceNo, serviceCode 모두 대응) -->
+                                        <span class="font-semibold text-gray-800" x-text="item.serviceNo || item.serviceCode || item.serviceNumber || item.service || '정보 없음'"></span>
                                     </div>
                                 </div>
                             </div>
@@ -242,10 +242,10 @@
                                 <div class="text-base font-black text-purple-900" x-text="numberFormat(item.amount) + '원'"></div>
                             </div>
 
-                            <!-- 계좌번호 -->
+                            <!-- 계좌번호 (4자리 단위 하이픈 적용) -->
                             <div class="text-xs bg-gray-50 p-2.5 rounded-xl border border-gray-200 text-gray-700 font-mono">
                                 <span class="text-gray-400 text-[10px] block font-sans">계좌번호</span>
-                                <span class="font-bold select-all text-sm text-gray-900" x-text="item.bankAccount"></span>
+                                <span class="font-bold select-all text-sm text-gray-900" x-text="formatBankAccount(item.bankAccount)"></span>
                             </div>
                         </div>
 
@@ -394,11 +394,8 @@
                 // ⏰ 한국표준시 등 불필요한 문구를 제거하고 월, 일, 시간(분 단위)만 깔끔하게 추출하는 함수
                 formatCleanTime(val) {
                     if (!val) return '정보 없음';
-                    
-                    // 이미 "19:20"처럼 간단한 시간 형태인 경우 그대로 반환
                     let str = String(val).trim();
                     
-                    // 만약 Date 객체 문자열이나 "Sat Dec 30 1899..." 같은 형태일 경우 파싱 시도
                     let dateObj = new Date(str);
                     if (!isNaN(dateObj.getTime()) && str.length > 10) {
                         let month = dateObj.getMonth() + 1;
@@ -408,8 +405,28 @@
                         return `${month}월 ${day}일 ${hours}:${minutes}`;
                     }
                     
-                    // 텍스트 형태로 들어온 경우 불필요한 표준시 관련 텍스트 제거 후 반환
                     return str.replace(/GMT.*$|\([가-힣\s]+\)/g, '').trim();
+                },
+
+                // 💳 계좌번호를 4자리 단위로 하이픈(-)으로 나누어주는 함수
+                formatBankAccount(val) {
+                    if (!val) return '정보 없음';
+                    let str = String(val).trim();
+                    
+                    if (str.includes('/')) {
+                        let parts = str.split('/').map(p => p.trim());
+                        if (parts.length >= 2) {
+                            let bank = parts[0];
+                            let account = parts[1].replace(/[^0-9]/g, '');
+                            let name = parts[2] || '';
+                            
+                            let formattedAccount = account.replace(/(.{4})/g, '$1-').replace(/-$/, '');
+                            return `${bank} / ${formattedAccount}${name ? ' / ' + name : ''}`;
+                        }
+                    }
+                    
+                    let cleanNum = str.replace(/[^0-9]/g, '');
+                    return cleanNum.replace(/(.{4})/g, '$1-').replace(/-$/, '');
                 },
 
                 numberFormat(val) {
