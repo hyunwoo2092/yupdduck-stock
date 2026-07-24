@@ -202,8 +202,8 @@
                     <div class="bg-white rounded-2xl p-4 border border-purple-100 shadow-sm flex flex-col space-y-3">
                         <div class="flex justify-between items-center border-b border-gray-100 pb-2">
                             <div class="flex items-center space-x-2">
-                                <span class="bg-purple-100 text-purple-800 font-bold text-xs px-2 py-0.5 rounded-md" x-text="item.staffName || item.author || '직원'"></span>
-                                <span class="text-xs text-gray-400" x-text="item.timestamp || item.date"></span>
+                                <span class="bg-purple-100 text-purple-800 font-bold text-xs px-2 py-0.5 rounded-md" x-text="item.staffName || '직원'"></span>
+                                <span class="text-xs text-gray-400" x-text="item.timestamp"></span>
                             </div>
                             <span class="text-xs font-bold px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700">⏳ 처리대기</span>
                         </div>
@@ -212,20 +212,20 @@
                             <div class="grid grid-cols-2 gap-2 bg-purple-50/60 p-2.5 rounded-xl border border-purple-100 text-xs">
                                 <div>
                                     <span class="text-purple-700 font-bold block text-[10px]">⏰ 주문접수 시간</span>
-                                    <span class="font-medium text-gray-800" x-text="formatCleanTime(item.orderTime || item.orderDateTime)"></span>
+                                    <span class="font-medium text-gray-800" x-text="formatCleanTime(item.orderTime)"></span>
                                 </div>
                                 <div>
                                     <span class="text-purple-700 font-bold block text-[10px]">🏷️ 주문번호</span>
-                                    <span class="font-medium text-gray-800" x-text="item.orderNo || item.orderNumber || '정보 없음'"></span>
+                                    <span class="font-medium text-gray-800" x-text="item.orderNo || '정보 없음'"></span>
                                 </div>
                                 <div class="col-span-2 pt-1 border-t border-purple-100/60 flex justify-between">
                                     <div>
                                         <span class="text-purple-700 font-bold text-[10px]">🔄 환불품목:</span> 
-                                        <span class="font-semibold text-gray-800" x-text="item.refundItem || item.item || '정보 없음'"></span>
+                                        <span class="font-semibold text-gray-800" x-text="item.refundItem || '정보 없음'"></span>
                                     </div>
                                     <div>
                                         <span class="text-purple-700 font-bold text-[10px]">🔢 서비스번호:</span> 
-                                        <span class="font-semibold text-gray-800" x-text="item.serviceNo || item.serviceCode || item.serviceNumber || item.service || '정보 없음'"></span>
+                                        <span class="font-semibold text-gray-800" x-text="item.serviceNo || '정보 없음'"></span>
                                     </div>
                                 </div>
                             </div>
@@ -285,11 +285,10 @@
 
                 loadRealtimeData() {
                     this.loading = true;
-                    fetch(`${GOOGLE_SCRIPT_URL}?date=${this.selectedDate}`)
+                    fetch(`${GOOGLE_SCRIPT_URL}`)
                     .then(res => res.json())
                     .then(res => { 
-                        // ★ 핵심 수정: 시트1 순서(res.data) 대신 발주화면 시트 순서인 res.bossData를 우선 사용하도록 수정
-                        this.realtimeMaterials = (res.bossData && res.bossData.length > 0) ? res.bossData : (res.data || []); 
+                        this.realtimeMaterials = res.bossData || []; 
                         this.loading = false; 
                     })
                     .catch(err => { this.loading = false; });
