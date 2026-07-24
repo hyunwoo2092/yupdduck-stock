@@ -345,14 +345,15 @@
                                 }
                             }
 
-                            if (hasExistingData) {
-                                this.showAlreadyRegisteredModal = true;
-                            } else {
-                                this.isEditMode = false;
-                                this.screen = targetZone;
-                                const activeItems = this.getActiveMaterials();
-                                activeItems.forEach(i => i.value = 0);
-                            }
+                       if (hasExistingData) {
+    this.showAlreadyRegisteredModal = true;
+    return; // 👈 이 줄을 꼭 넣어주셔야 화면이 안 넘어갑니다!
+} else {
+    this.isEditMode = false;
+    this.screen = targetZone;
+    const activeItems = this.getActiveMaterials();
+    activeItems.forEach(i => i.value = 0);
+}  
                         })
                         .catch(err => {
                             this.loadingData = false;
