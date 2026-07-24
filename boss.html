@@ -143,8 +143,8 @@
                         <div class="flex justify-between items-center border-b border-gray-100 pb-2">
                             <div class="flex items-center space-x-2">
                                 <span class="text-[10px] px-2 py-0.5 rounded-md font-bold" 
-                                      :class="item.zone === '주방' ? 'bg-orange-100 text-orange-700' : 'bg-red-100 text-red-700'" 
-                                      x-text="item.zone"></span>
+                                    :class="item.zone === '주방' ? 'bg-orange-100 text-orange-700' : 'bg-red-100 text-red-700'" 
+                                    x-text="item.zone"></span>
                                 <span class="font-bold text-base text-gray-800" x-text="item.name"></span>
                             </div>
                         </div>
@@ -204,41 +204,53 @@
                         <!-- 상단: 등록자 및 날짜 / 상태뱃지 -->
                         <div class="flex justify-between items-center border-b border-gray-100 pb-2">
                             <div class="flex items-center space-x-2">
-                                <span class="bg-purple-100 text-purple-800 font-bold text-xs px-2 py-0.5 rounded-md" x-text="item.staffName || '직원'"></span>
-                                <span class="text-xs text-gray-400" x-text="item.timestamp"></span>
+                                <span class="bg-purple-100 text-purple-800 font-bold text-xs px-2 py-0.5 rounded-md" x-text="item.staffName || item.author || '직원'"></span>
+                                <span class="text-xs text-gray-400" x-text="item.timestamp || item.date"></span>
                             </div>
                             <span class="text-xs font-bold px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700">⏳ 처리대기</span>
                         </div>
 
-                        <!-- 중단: 정보 및 빌지 사진 -->
-                        <div class="flex space-x-3 items-start">
-                            <!-- 빌지 사진 미리보기 썸네일 -->
-                            <div class="w-20 h-20 bg-gray-100 rounded-xl overflow-hidden border border-gray-200 shrink-0 cursor-pointer relative group"
-                                 @click="openImageModal(item.imageUrl)">
-                                <template x-if="item.imageUrl">
-                                    <img :src="item.imageUrl" class="w-full h-full object-cover group-hover:scale-105 transition-transform" alt="빌지사진">
-                                </template>
-                                <template x-if="!item.imageUrl">
-                                    <div class="w-full h-full flex items-center justify-center text-[10px] text-gray-400">사진없음</div>
-                                </template>
-                                <div class="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-[10px] font-bold">확대</div>
+                        <!-- 중단: 상세 데이터 배치 (여러 가능한 키 이름 대응) -->
+                        <div class="space-y-2">
+                            <!-- 주문 정보 라인 (주문접수 시간, 주문번호, 서비스번호) -->
+                            <div class="grid grid-cols-2 gap-2 bg-purple-50/60 p-2.5 rounded-xl border border-purple-100 text-xs">
+                                <div>
+                                    <span class="text-purple-700 font-bold block text-[10px]">⏰ 주문접수 시간</span>
+                                    <span class="font-medium text-gray-800" x-text="item.orderTime || item.orderDateTime || '정보 없음'"></span>
+                                </div>
+                                <div>
+                                    <span class="text-purple-700 font-bold block text-[10px]">🏷️ 주문번호</span>
+                                    <span class="font-medium text-gray-800" x-text="item.orderNo || item.orderNumber || '정보 없음'"></span>
+                                </div>
+                                <div class="col-span-2 pt-1 border-t border-purple-100/60 flex justify-between">
+                                    <div>
+                                        <span class="text-purple-700 font-bold text-[10px]">🔄 환불품목:</span> 
+                                        <span class="font-semibold text-gray-800" x-text="item.refundItem || item.item || '정보 없음'"></span>
+                                    </div>
+                                    <div>
+                                        <span class="text-purple-700 font-bold text-[10px]">🔢 서비스번호:</span> 
+                                        <span class="font-semibold text-gray-800" x-text="item.serviceNo || item.serviceNumber || '정보 없음'"></span>
+                                    </div>
+                                </div>
                             </div>
 
-                            <!-- 상세 텍스트 정보 -->
-                            <div class="flex-1 space-y-1">
-                                <div class="text-xs text-gray-500">사유: <span class="text-gray-800 font-medium" x-text="item.reason"></span></div>
-                                <div class="text-sm font-black text-purple-900" x-text="numberFormat(item.amount) + '원'"></div>
-                                <div class="text-xs bg-gray-50 p-2 rounded-lg border border-gray-200 text-gray-700 font-mono">
-                                    <span class="text-gray-400 text-[10px] block">계좌번호</span>
-                                    <span class="font-bold select-all" x-text="item.bankAccount"></span>
-                                </div>
+                            <!-- 사유 및 금액 -->
+                            <div class="flex justify-between items-center px-1">
+                                <div class="text-xs text-gray-600">사유: <span class="text-gray-900 font-semibold" x-text="item.reason"></span></div>
+                                <div class="text-base font-black text-purple-900" x-text="numberFormat(item.amount) + '원'"></div>
+                            </div>
+
+                            <!-- 계좌번호 -->
+                            <div class="text-xs bg-gray-50 p-2.5 rounded-xl border border-gray-200 text-gray-700 font-mono">
+                                <span class="text-gray-400 text-[10px] block font-sans">계좌번호</span>
+                                <span class="font-bold select-all text-sm text-gray-900" x-text="item.bankAccount"></span>
                             </div>
                         </div>
 
                         <!-- 하단: 송금완료 버튼 -->
                         <div class="pt-1 flex justify-end">
                             <button @click="toggleStatus(item)" 
-                                    class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-2xs bg-purple-600 text-white hover:bg-purple-700">
+                                    class="w-full py-2.5 rounded-xl text-xs font-bold transition-all shadow-xs bg-purple-600 text-white hover:bg-purple-700">
                                 송금 완료 처리하기
                             </button>
                         </div>
@@ -248,14 +260,6 @@
                 <div x-show="missingItems.filter(i => i.status !== '완료').length === 0 && !loading" class="text-center text-gray-400 py-20 text-sm">
                     처리 대기 중인 누락 환불 요청이 없습니다. 🎉
                 </div>
-            </div>
-        </div>
-
-        <!-- 이미지 확대 보기 팝업 모달 -->
-        <div x-show="showModal" class="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" @click="showModal = false" x-cloak>
-            <div class="relative max-w-full max-h-full">
-                <img :src="modalImageUrl" class="max-w-full max-h-[85vh] rounded-2xl object-contain shadow-2xl">
-                <button class="absolute -top-10 right-0 text-white font-bold text-sm bg-white/20 px-3 py-1 rounded-full">닫기 ✕</button>
             </div>
         </div>
 
@@ -274,8 +278,6 @@
                 orderMaterials: [],
                 usageMaterials: [],
                 missingItems: [], 
-                showModal: false,
-                modalImageUrl: '',
 
                 init() {
                     const today = new Date();
@@ -361,12 +363,6 @@
                     .catch(err => { 
                         this.loading = false; 
                     });
-                },
-
-                openImageModal(url) {
-                    if(!url) return;
-                    this.modalImageUrl = url;
-                    this.showModal = true;
                 },
 
                 // 💸 송금 완료 처리 시 화면에서 숨기고 서버(구글시트) 상태 업데이트
