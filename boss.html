@@ -198,7 +198,7 @@
             </div>
 
             <div class="flex-1 overflow-y-auto p-4 space-y-3 pb-10">
-                <!-- 대기 중인 항목만 필터링하여 보여줌 ('완료'된 항목은 화면에서 즉시 숨김) -->
+                <!-- 대기 중인 항목만 필터링하여 보여줌 -->
                 <template x-for="(item, index) in missingItems.filter(i => i.status !== '완료')" :key="item.rowIndex || index">
                     <div class="bg-white rounded-2xl p-4 border border-purple-100 shadow-sm flex flex-col space-y-3">
                         <!-- 상단: 등록자 및 날짜 / 상태뱃지 -->
@@ -210,13 +210,14 @@
                             <span class="text-xs font-bold px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700">⏳ 처리대기</span>
                         </div>
 
-                        <!-- 중단: 상세 데이터 배치 (여러 가능한 키 이름 대응) -->
+                        <!-- 중단: 상세 데이터 배치 -->
                         <div class="space-y-2">
                             <!-- 주문 정보 라인 (주문접수 시간, 주문번호, 서비스번호) -->
                             <div class="grid grid-cols-2 gap-2 bg-purple-50/60 p-2.5 rounded-xl border border-purple-100 text-xs">
                                 <div>
                                     <span class="text-purple-700 font-bold block text-[10px]">⏰ 주문접수 시간</span>
-                                    <span class="font-medium text-gray-800" x-text="item.orderTime || item.orderDateTime || '정보 없음'"></span>
+                                    <!-- 정제된 시간 포맷 함수 적용 -->
+                                    <span class="font-medium text-gray-800" x-text="formatCleanTime(item.orderTime || item.orderDateTime)"></span>
                                 </div>
                                 <div>
                                     <span class="text-purple-700 font-bold block text-[10px]">🏷️ 주문번호</span>
@@ -229,7 +230,8 @@
                                     </div>
                                     <div>
                                         <span class="text-purple-700 font-bold text-[10px]">🔢 서비스번호:</span> 
-                                        <span class="font-semibold text-gray-800" x-text="item.serviceNo || item.serviceNumber || '정보 없음'"></span>
+                                        <!-- 서비스 번호 매핑 보완 (serviceNo, serviceNumber 등 대응) -->
+                                        <span class="font-semibold text-gray-800" x-text="item.serviceNo || item.serviceNumber || item.service || '정보 없음'"></span>
                                     </div>
                                 </div>
                             </div>
@@ -365,9 +367,8 @@
                     });
                 },
 
-                // 💸 송금 완료 처리 시 화면에서 숨기고 서버(구글시트) 상태 업데이트
                 toggleStatus(item) {
-                    item.status = '완료'; // 화면 목록에서 즉시 숨겨지도록 상태 변경
+                    item.status = '완료';
 
                     const payload = {
                         sheetType: "missingUpdate",
@@ -388,6 +389,27 @@
                     .catch(err => {
                         console.error("상태 업데이트 통신 오류:", err);
                     });
+                },
+
+                // ⏰ 한국표준시 등 불필요한 문구를 제거하고 월, 일, 시간(분 단위)만 깔끔하게 추출하는 함수
+                formatCleanTime(val) {
+                    if (!val) return '정보 없음';
+                    
+                    // 이미 "19:20"처럼 간단한 시간 형태인 경우 그대로 반환
+                    let str = String(val).trim();
+                    
+                    // 만약 Date 객체 문자열이나 "Sat Dec 30 1899..." 같은 형태일 경우 파싱 시도
+                    let dateObj = new Date(str);
+                    if (!isNaN(dateObj.getTime()) && str.length > 10) {
+                        let month = dateObj.getMonth() + 1;
+                        let day = dateObj.getDate();
+                        let hours = String(dateObj.getHours()).padStart(2, '0');
+                        let minutes = String(dateObj.getMinutes()).padStart(2, '0');
+                        return `${month}월 ${day}일 ${hours}:${minutes}`;
+                    }
+                    
+                    // 텍스트 형태로 들어온 경우 불필요한 표준시 관련 텍스트 제거 후 반환
+                    return str.replace(/GMT.*$|\([가-힣\s]+\)/g, '').trim();
                 },
 
                 numberFormat(val) {
